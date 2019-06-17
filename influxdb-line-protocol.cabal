@@ -1,0 +1,36 @@
+cabal-version: 2.2
+name: influxdb-line-protocol
+version: 0.1.0.0
+synopsis: InfluxDB Line Protocol Encoding
+homepage: https://github.com/andrewthad/influxdb-line-protocol
+bug-reports: https://github.com/andrewthad/influxdb-line-protocol/issues
+license: BSD-3-Clause
+license-file: LICENSE
+author: Andrew Martin
+maintainer: andrew.thaddeus@gmail.com
+copyright: 2019 Andrew Martin
+category: Database
+extra-source-files: CHANGELOG.md
+
+library
+  exposed-modules:
+    Database.Influx.LineProtocol
+  build-depends:
+    , base >=4.12.0.0 && <5
+    , byteslice >=0.1 && <0.2
+    , small-bytearray-builder >=0.1 && <0.2
+    , primitive-unlifted >=0.1.1 && <0.2
+    , primitive >=0.7 && <0.8
+  hs-source-dirs: src
+  default-language: Haskell2010
+
+test-suite test
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  build-depends:
+    , base >=4.12.0.0 && <5
+    , influxdb-line-protocol
+    , small-bytearray-builder
+    , primitive
