@@ -12,17 +12,28 @@ copyright: 2019 Andrew Martin
 category: Database
 extra-source-files: CHANGELOG.md
 
+flag checked
+  manual: True
+  description: Add bounds-checking to primitive array operations
+  default: False
+
 library
   exposed-modules:
     Database.Influx.LineProtocol
   build-depends:
     , base >=4.12.0.0 && <5
     , byteslice >=0.1 && <0.2
-    , small-bytearray-builder >=0.1 && <0.2
+    , small-bytearray-builder >=0.1.1 && <0.2
     , primitive-unlifted >=0.1.1 && <0.2
-    , primitive >=0.7 && <0.8
+    , run-st >=0.1 && <0.2
+    , vector >=0.12.0.3 && <0.13
+  if flag(checked)
+    build-depends: primitive-checked >= 0.7 && <0.8
+  else
+    build-depends: primitive >= 0.7 && <0.8
   hs-source-dirs: src
   default-language: Haskell2010
+  ghc-options: -O2 -Wall -ddump-to-file -ddump-simpl -dsuppress-all
 
 test-suite test
   default-language: Haskell2010
@@ -34,3 +45,19 @@ test-suite test
     , influxdb-line-protocol
     , small-bytearray-builder
     , primitive
+  ghc-options: -O2 -Wall -ddump-to-file -ddump-simpl -dsuppress-all
+
+benchmark bench
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: Main.hs
+  build-depends:
+    , base >=4.12.0.0 && <5
+    , byteslice
+    , gauge >=0.2.4 && <0.3
+    , influxdb-line-protocol
+    , small-bytearray-builder
+    , primitive
+    , vector
+  ghc-options: -O2 -Wall -ddump-to-file -ddump-simpl -dsuppress-all
