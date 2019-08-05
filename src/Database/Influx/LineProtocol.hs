@@ -31,6 +31,7 @@ module Database.Influx.LineProtocol
   , fieldValueByteArray
   , fieldValueWord64
   , fieldValueInt64
+  , fieldValueDouble
   , fieldValueBool
     -- * Construct Tags
   , tags1
@@ -110,7 +111,7 @@ newtype FieldKey = FieldKey ByteArray
 newtype FieldValue = FieldValue ByteArray
 
 -- | Tags for a data point.
-data Tags = Tags 
+data Tags = Tags
   -- Invariants: Tag keys and tag values are represented
   -- as a structure of arrays. These must agree in length.
   -- The information is represented this way to optimize for
@@ -128,7 +129,7 @@ instance Monoid Tags where
 data Fields = Fields
   -- There must be at least one field. InfluxDB requires
   -- this, so this client does too.
-  !(UnliftedArray FieldKey) 
+  !(UnliftedArray FieldKey)
   !(UnliftedArray FieldValue)
 
 -- | An InfluxDB data point. The include the measurement that
@@ -236,7 +237,7 @@ copyTags dst i' keys vals = go 0 i' where
       PM.writeByteArray dst i2 (0x3D :: Word8)
       let i3 = i2 + 1
       i4 <- copySmall dst i3 val
-      go (tagIx + 1) i4 
+      go (tagIx + 1) i4
     else pure i0
 
 copyFields :: forall s.
@@ -327,7 +328,7 @@ escapeCommaSpace :: ByteArray# -> ByteArray#
 {-# noinline escapeCommaSpace #-}
 escapeCommaSpace b = escapeCommon (\c -> c == c2w ',' || c == c2w ' ') b
 
-shrinkMutableByteArray :: 
+shrinkMutableByteArray ::
      MutableByteArray s
   -> Int -- ^ new size
   -> ST s ()
@@ -369,6 +370,10 @@ fieldValueWord64 = FieldValue . BBU.run . BBU.word64Dec
 -- | Convert a 'Int64' to a field value.
 fieldValueInt64 :: Int64 -> FieldValue
 fieldValueInt64 = FieldValue . BBU.run . BBU.int64Dec
+
+-- | Convert a 'Double' to a field value.
+fieldValueDouble :: Double -> FieldValue
+fieldValueDouble = FieldValue . BBU.run . BBU.doubleDec
 
 -- | Convert a 'Bool' to a field value.
 fieldValueBool :: Bool -> FieldValue
