@@ -6,7 +6,7 @@ import Data.Bytes.Types (MutableBytes(..))
 import Data.Word
 import Data.Primitive (ByteArray)
 import Database.Influx.LineProtocol
-import Data.ByteArray.Builder.Small (run,pasteArrayIO)
+import Data.ByteArray.Builder (run,pasteArrayIO)
 import Data.Vector (Vector)
 import System.IO
 import Control.Monad (when)

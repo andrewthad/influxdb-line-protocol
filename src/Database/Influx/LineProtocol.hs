@@ -10,6 +10,7 @@
 {-# language TypeApplications #-}
 {-# language TypeFamilies #-}
 {-# language TypeInType #-}
+{-# language UnboxedTuples #-}
 
 module Database.Influx.LineProtocol
   ( -- * InfluxDB Types
@@ -48,17 +49,21 @@ import Data.Char (ord)
 import Data.Bytes.Types (MutableBytes(..))
 import Data.Word (Word8,Word64)
 import Data.Int (Int64)
-import Data.Primitive (ByteArray(..),MutableByteArray)
+import Data.Primitive (ByteArray(..),MutableByteArray(..))
 import Data.Primitive.Unlifted.Array (UnliftedArray(..))
 import Data.Primitive.Unlifted.Class (PrimUnlifted(..))
 import GHC.Int (Int(I#))
-import GHC.Exts (ByteArray#)
+import GHC.Exts (ByteArray#,State#)
+import GHC.ST (ST(ST))
 
+import qualified Arithmetic.Nat as Nat
 import qualified Control.Monad.Primitive as PM
 import qualified Data.Primitive as PM
 import qualified Data.Primitive.Unlifted.Array as PM
-import qualified Data.ByteArray.Builder.Small as BB
-import qualified Data.ByteArray.Builder.Small.Unsafe as BBU
+import qualified Data.ByteArray.Builder as B
+import qualified Data.ByteArray.Builder.Unsafe as BU
+import qualified Data.ByteArray.Builder.Bounded as BB
+import qualified Data.ByteArray.Builder.Bounded.Unsafe as BBU
 import qualified Data.Vector.Primitive as PV
 import qualified GHC.Exts as Exts
 
@@ -158,12 +163,23 @@ c2w :: Char -> Word8
 {-# inline c2w #-}
 c2w = fromIntegral . ord
 
+unST :: ST s a -> State# s -> (# State# s, a #)
+unST (ST x) = x
+
+unsafeConstructBuilder :: (forall s. MutableBytes s -> ST s (Maybe Int)) -> B.Builder
+unsafeConstructBuilder f = BU.Builder
+  (\arr off len s0 -> case unST (f (MutableBytes (MutableByteArray arr) (I# off) (I# len))) s0 of
+    (# s1, m #) -> case m of
+      Nothing -> (# s1, (-1#) #)
+      Just (I# r) -> (# s1, r #)
+  )
+
 -- Returns a positive number with the new index if data was
 -- successfully written. Otherwise, returns the negation of
 -- the length required to paste this metadata.
-encodePoint :: Point -> BB.Builder
+encodePoint :: Point -> B.Builder
 encodePoint (Point (Measurement msrmnt) (Tags tks tvs) (Fields fks fvs) theTime) =
-  BB.construct $ \(MutableBytes arr off len) -> do
+  unsafeConstructBuilder $ \(MutableBytes arr off len) -> do
     let !requiredBytes = 0
           + PM.sizeofByteArray msrmnt -- measurement
           + PM.sizeofUnliftedArray tks -- commas for tags
@@ -187,7 +203,7 @@ encodePoint (Point (Measurement msrmnt) (Tags tks tvs) (Fields fks fvs) theTime)
         -- Write the space after fields.
         PM.writeByteArray arr i3 (c2w ' ')
         let i4 = i3 + 1
-        i5 <- BBU.pasteST (BBU.word64Dec theTime) arr i4
+        i5 <- BBU.pasteST (BB.word64Dec theTime) arr i4
         -- Write the newline after fields.
         PM.writeByteArray arr i5 (c2w '\n')
         let i6 = i5 + 1
@@ -365,15 +381,15 @@ fieldValueByteArray (ByteArray a) = FieldValue (ByteArray (escapeQuoted a))
 
 -- | Convert a 'Word64' to a field value.
 fieldValueWord64 :: Word64 -> FieldValue
-fieldValueWord64 = FieldValue . BBU.run . BBU.word64Dec
+fieldValueWord64 = FieldValue . BB.run Nat.constant . BB.word64Dec
 
 -- | Convert a 'Int64' to a field value.
 fieldValueInt64 :: Int64 -> FieldValue
-fieldValueInt64 = FieldValue . BBU.run . BBU.int64Dec
+fieldValueInt64 = FieldValue . BB.run Nat.constant . BB.int64Dec
 
 -- | Convert a 'Double' to a field value.
 fieldValueDouble :: Double -> FieldValue
-fieldValueDouble = FieldValue . BBU.run . BBU.doubleDec
+fieldValueDouble = FieldValue . BB.run Nat.constant . BB.doubleDec
 
 -- | Convert a 'Bool' to a field value.
 fieldValueBool :: Bool -> FieldValue
