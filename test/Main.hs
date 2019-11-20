@@ -9,6 +9,7 @@ import System.IO
 import Control.Monad (when)
 
 import qualified GHC.Exts as Exts
+import qualified Data.Bytes.Chunks as Chunks
 
 main :: IO ()
 main = do
@@ -75,7 +76,7 @@ expectedF = str
   "rocks,color=red egress=246,ingress=4361 18446744073709551615\n"
 
 actualA :: ByteArray
-actualA = run 7 $ encodePoint
+actualA = Chunks.concat $ run 7 $ encodePoint
   ( Point
     { measurement = rocks
     , tags = color (tagValueByteArray (str "green"))
@@ -85,7 +86,7 @@ actualA = run 7 $ encodePoint
   )
 
 actualB :: ByteArray
-actualB = run 7 $ encodePoint
+actualB = Chunks.concat $ run 7 $ encodePoint
   ( Point
     { measurement = weird
     , tags = color (tagValueByteArray (str "green"))
@@ -95,7 +96,7 @@ actualB = run 7 $ encodePoint
   ) 
 
 actualC :: ByteArray
-actualC = run 7 $ encodePoint
+actualC = Chunks.concat $ run 7 $ encodePoint
   ( Point
     { measurement = symbols
     , tags = color (tagValueByteArray (str "green"))
@@ -105,7 +106,7 @@ actualC = run 7 $ encodePoint
   ) 
 
 actualD :: ByteArray
-actualD = run 23 $ encodePoint
+actualD = Chunks.concat $ run 23 $ encodePoint
   ( Point
     { measurement = rocks
     , tags = mempty
@@ -115,7 +116,7 @@ actualD = run 23 $ encodePoint
   ) 
 
 actualE :: ByteArray
-actualE = run 23 $ encodePoint
+actualE = Chunks.concat $ run 23 $ encodePoint
   ( Point
     { measurement = rocks
     , tags = mempty
@@ -126,7 +127,7 @@ actualE = run 23 $ encodePoint
   ) 
 
 actualF :: ByteArray
-actualF = run 7 $ encodePoint
+actualF = Chunks.concat $ run 7 $ encodePoint
   ( Point
     { measurement = rocks
     , tags = color (tagValueByteArray (str "red"))

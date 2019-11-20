@@ -50,7 +50,6 @@ import Control.Monad.ST (ST)
 import Control.Monad.ST.Run (runByteArrayST,runUnliftedArrayST)
 import Data.Coerce (coerce)
 import Data.Char (ord)
-import Data.Bytes.Types (MutableBytes(..))
 import Data.Word (Word8,Word64)
 import Data.Int (Int64)
 import Data.Primitive (ByteArray(..),MutableByteArray(..))
@@ -60,8 +59,7 @@ import Data.ByteString.Short.Internal (ShortByteString(SBS))
 import Data.Text (Text)
 import Data.Text.Short (ShortText)
 import GHC.Int (Int(I#))
-import GHC.Exts (ByteArray#,State#)
-import GHC.ST (ST(ST))
+import GHC.Exts (ByteArray#)
 
 import qualified Arithmetic.Nat as Nat
 import qualified Control.Monad.Primitive as PM
@@ -171,52 +169,39 @@ c2w :: Char -> Word8
 {-# inline c2w #-}
 c2w = fromIntegral . ord
 
-unST :: ST s a -> State# s -> (# State# s, a #)
-unST (ST x) = x
-
-unsafeConstructBuilder :: (forall s. MutableBytes s -> ST s (Maybe Int)) -> B.Builder
-unsafeConstructBuilder f = BU.Builder
-  (\arr off len s0 -> case unST (f (MutableBytes (MutableByteArray arr) (I# off) (I# len))) s0 of
-    (# s1, m #) -> case m of
-      Nothing -> (# s1, (-1#) #)
-      Just (I# r) -> (# s1, r #)
-  )
-
 -- Returns a positive number with the new index if data was
 -- successfully written. Otherwise, returns the negation of
 -- the length required to paste this metadata.
 encodePoint :: Point -> B.Builder
 encodePoint (Point (Measurement msrmnt) (Tags tks tvs) (Fields fks fvs) theTime) =
-  unsafeConstructBuilder $ \(MutableBytes arr off len) -> do
-    let !requiredBytes = 0
-          + PM.sizeofByteArray msrmnt -- measurement
-          + PM.sizeofUnliftedArray tks -- commas for tags
-          + sumSizeofByteArrays (coerceTagKeys tks) -- tag keys
-          + sumSizeofByteArrays (coerceTagValues tvs) -- tag values
-          + PM.sizeofUnliftedArray fks -- commas (and space) for tags
-          + sumSizeofByteArrays (coerceFieldKeys fks) -- field keys
-          + sumSizeofByteArrays (coerceFieldValues fvs) -- field values
-          + ( 1 -- space preceeding timestamp
-            + 19 -- decimal-encoded timestamp
-            + 1 -- newline after timestamp
-            )
-    if requiredBytes <= len
-      then do
-        let i0 = off
-        i1 <- copySmall arr i0 msrmnt
-        i2 <- copyTags arr i1 tks tvs
-        -- Passing a space to copyFields since that
-        -- is the initial separator that gets used.
-        i3 <- copyFields arr i2 fks fvs (c2w ' ')
-        -- Write the space after fields.
-        PM.writeByteArray arr i3 (c2w ' ')
-        let i4 = i3 + 1
-        i5 <- BBU.pasteST (BB.word64Dec theTime) arr i4
-        -- Write the newline after fields.
-        PM.writeByteArray arr i5 (c2w '\n')
-        let i6 = i5 + 1
-        pure (Just i6)
-      else pure Nothing
+  let !requiredBytes = 0
+        + PM.sizeofByteArray msrmnt -- measurement
+        + PM.sizeofUnliftedArray tks -- commas for tags
+        + sumSizeofByteArrays (coerceTagKeys tks) -- tag keys
+        + sumSizeofByteArrays (coerceTagValues tvs) -- tag values
+        + PM.sizeofUnliftedArray fks -- commas (and space) for tags
+        + sumSizeofByteArrays (coerceFieldKeys fks) -- field keys
+        + sumSizeofByteArrays (coerceFieldValues fvs) -- field values
+        + ( 1 -- space preceeding timestamp
+          + 19 -- decimal-encoded timestamp
+          + 1 -- newline after timestamp
+          )
+  in
+  BU.fromEffect requiredBytes $ \arr off -> do
+    let i0 = off
+    i1 <- copySmall arr i0 msrmnt
+    i2 <- copyTags arr i1 tks tvs
+    -- Passing a space to copyFields since that
+    -- is the initial separator that gets used.
+    i3 <- copyFields arr i2 fks fvs (c2w ' ')
+    -- Write the space after fields.
+    PM.writeByteArray arr i3 (c2w ' ')
+    let i4 = i3 + 1
+    i5 <- BBU.pasteST (BB.word64Dec theTime) arr i4
+    -- Write the newline after fields.
+    PM.writeByteArray arr i5 (c2w '\n')
+    let i6 = i5 + 1
+    pure i6
 
 sumSizeofByteArrays :: UnliftedArray ByteArray -> Int
 sumSizeofByteArrays arr =

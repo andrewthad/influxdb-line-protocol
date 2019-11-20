@@ -2,33 +2,27 @@
 {-# language BangPatterns #-}
 
 import Data.Char (ord)
-import Data.Bytes.Types (MutableBytes(..))
-import Data.Word
+import Data.Word (Word8,Word64)
 import Data.Primitive (ByteArray)
 import Database.Influx.LineProtocol
-import Data.ByteArray.Builder (run,pasteArrayIO)
+import Data.ByteArray.Builder (run)
 import Data.Vector (Vector)
-import System.IO
-import Control.Monad (when)
 import Gauge.Main
 import Gauge.Main.Options
 
 import qualified Data.Primitive as PM
 import qualified GHC.Exts as Exts
-import qualified Data.Vector as V
+import qualified Data.Bytes.Chunks as Chunks
 
 main :: IO ()
 main = do
-  let sz = 512 + PM.sizeofByteArray (foldMap (\p -> run 1 (encodePoint p)) points)
-  buf <- PM.newByteArray sz
+  let sz = 512 + PM.sizeofByteArray (Chunks.concat (foldMap (run 1 . encodePoint) points))
   defaultMainWith (defaultConfig{forceGC=False})
     [ -- In the static benchmark, field values have likely
       -- been floated to the top level. Consequently,
       -- improvements or regressions affecting field-value
       -- escaping are not reflected.
-      bench "static" $ whnfIO $ do
-        (v,_) <- pasteArrayIO (MutableBytes buf 0 sz) encodePoint points
-        when (not (V.null v)) (fail "did not write all points")
+      bench "static" (whnf (\x -> run sz (foldMap encodePoint x)) points)
     ]
     
 points :: Vector Point
