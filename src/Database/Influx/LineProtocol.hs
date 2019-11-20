@@ -27,7 +27,10 @@ module Database.Influx.LineProtocol
     -- * Escaping
   , measurementByteArray
   , tagKeyByteArray
+  , tagKeyShortText
   , tagValueByteArray
+  , tagValueShortText
+  , tagValueText
   , fieldKeyByteArray
   , fieldValueByteArray
   , fieldValueWord64
@@ -37,6 +40,7 @@ module Database.Influx.LineProtocol
     -- * Construct Tags
   , tags1
   , tags2
+  , tags3
   , fields1
   , fields2
   , fields4
@@ -52,6 +56,9 @@ import Data.Int (Int64)
 import Data.Primitive (ByteArray(..),MutableByteArray(..))
 import Data.Primitive.Unlifted.Array (UnliftedArray(..))
 import Data.Primitive.Unlifted.Class (PrimUnlifted(..))
+import Data.ByteString.Short.Internal (ShortByteString(SBS))
+import Data.Text (Text)
+import Data.Text.Short (ShortText)
 import GHC.Int (Int(I#))
 import GHC.Exts (ByteArray#,State#)
 import GHC.ST (ST(ST))
@@ -64,6 +71,7 @@ import qualified Data.ByteArray.Builder as B
 import qualified Data.ByteArray.Builder.Unsafe as BU
 import qualified Data.ByteArray.Builder.Bounded as BB
 import qualified Data.ByteArray.Builder.Bounded.Unsafe as BBU
+import qualified Data.Text.Short as TS
 import qualified Data.Vector.Primitive as PV
 import qualified GHC.Exts as Exts
 
@@ -358,15 +366,33 @@ measurementByteArray :: ByteArray -> Measurement
 measurementByteArray (ByteArray a) =
   Measurement (ByteArray (escapeCommaSpace a))
 
--- | Convert a 'ByteArray' to a field key by escaping commas, spaces
+-- | Convert a 'ByteArray' to a tag key by escaping commas, spaces
 -- and the equals symbol. The argument must be be UTF-8 encoded text.
 tagKeyByteArray :: ByteArray -> TagKey
 tagKeyByteArray (ByteArray a) = TagKey (ByteArray (escapeCommaSpaceEquals a))
 
--- | Convert a 'ByteArray' to a field values by escaping commas, spaces
+-- | Convert a 'ShortText' to a tag key by escaping commas, spaces
+-- and the equals symbol.
+tagKeyShortText :: ShortText -> TagKey
+tagKeyShortText = tagKeyByteArray . sbsToBa . TS.toShortByteString
+
+-- | Convert a 'ByteArray' to a tag value by escaping commas, spaces
 -- and the equals symbol. The argument must be be UTF-8 encoded text.
 tagValueByteArray :: ByteArray -> TagValue
 tagValueByteArray (ByteArray a) = TagValue (ByteArray (escapeCommaSpaceEquals a))
+
+-- | Convert a 'ShortText' to a tag value by escaping commas, spaces
+-- and the equals symbol.
+tagValueShortText :: ShortText -> TagValue
+tagValueShortText = tagValueByteArray . sbsToBa . TS.toShortByteString
+
+-- | Convert a 'Text' to a tag value by escaping commas, spaces
+-- and the equals symbol.
+tagValueText :: Text -> TagValue
+tagValueText = tagValueShortText . TS.fromText
+
+sbsToBa :: ShortByteString -> ByteArray
+sbsToBa (SBS x) = ByteArray x
 
 -- | Convert a 'ByteArray' to a tag key by escaping commas, spaces
 -- and the equals symbol. The argument must be be UTF-8 encoded text.
@@ -436,6 +462,24 @@ tags2 !k0 !k1 =
             a <- PM.unsafeNewUnliftedArray 2
             PM.writeUnliftedArray a 0 v0
             PM.writeUnliftedArray a 1 v1
+            PM.unsafeFreezeUnliftedArray a
+       in Tags ks vs
+
+tags3 :: TagKey -> TagKey -> TagKey -> TagValue -> TagValue -> TagValue -> Tags
+{-# inline tags3 #-}
+tags3 !k0 !k1 !k2 =
+  let ks = runUnliftedArrayST $ do
+        a <- PM.unsafeNewUnliftedArray 3
+        PM.writeUnliftedArray a 0 k0
+        PM.writeUnliftedArray a 1 k1
+        PM.writeUnliftedArray a 2 k2
+        PM.unsafeFreezeUnliftedArray a
+   in \v0 v1 v2 ->
+      let !vs = runUnliftedArrayST $ do
+            a <- PM.unsafeNewUnliftedArray 3
+            PM.writeUnliftedArray a 0 v0
+            PM.writeUnliftedArray a 1 v1
+            PM.writeUnliftedArray a 2 v2
             PM.unsafeFreezeUnliftedArray a
        in Tags ks vs
 
