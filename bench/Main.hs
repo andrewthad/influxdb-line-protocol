@@ -16,7 +16,7 @@ import qualified Data.Bytes.Chunks as Chunks
 
 main :: IO ()
 main = do
-  let sz = 512 + PM.sizeofByteArray (Chunks.concat (foldMap (run 1 . encodePoint) points))
+  let sz = 512 + PM.sizeofByteArray (Chunks.concatU (foldMap (run 1 . encodePoint) points))
   defaultMainWith (defaultConfig{forceGC=False})
     [ -- In the static benchmark, field values have likely
       -- been floated to the top level. Consequently,

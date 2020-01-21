@@ -76,7 +76,7 @@ expectedF = str
   "rocks,color=red egress=246,ingress=4361 18446744073709551615\n"
 
 actualA :: ByteArray
-actualA = Chunks.concat $ run 7 $ encodePoint
+actualA = Chunks.concatU $ run 7 $ encodePoint
   ( Point
     { measurement = rocks
     , tags = color (tagValueByteArray (str "green"))
@@ -86,7 +86,7 @@ actualA = Chunks.concat $ run 7 $ encodePoint
   )
 
 actualB :: ByteArray
-actualB = Chunks.concat $ run 7 $ encodePoint
+actualB = Chunks.concatU $ run 7 $ encodePoint
   ( Point
     { measurement = weird
     , tags = color (tagValueByteArray (str "green"))
@@ -96,7 +96,7 @@ actualB = Chunks.concat $ run 7 $ encodePoint
   ) 
 
 actualC :: ByteArray
-actualC = Chunks.concat $ run 7 $ encodePoint
+actualC = Chunks.concatU $ run 7 $ encodePoint
   ( Point
     { measurement = symbols
     , tags = color (tagValueByteArray (str "green"))
@@ -106,7 +106,7 @@ actualC = Chunks.concat $ run 7 $ encodePoint
   ) 
 
 actualD :: ByteArray
-actualD = Chunks.concat $ run 23 $ encodePoint
+actualD = Chunks.concatU $ run 23 $ encodePoint
   ( Point
     { measurement = rocks
     , tags = mempty
@@ -116,7 +116,7 @@ actualD = Chunks.concat $ run 23 $ encodePoint
   ) 
 
 actualE :: ByteArray
-actualE = Chunks.concat $ run 23 $ encodePoint
+actualE = Chunks.concatU $ run 23 $ encodePoint
   ( Point
     { measurement = rocks
     , tags = mempty
@@ -127,7 +127,7 @@ actualE = Chunks.concat $ run 23 $ encodePoint
   ) 
 
 actualF :: ByteArray
-actualF = Chunks.concat $ run 7 $ encodePoint
+actualF = Chunks.concatU $ run 7 $ encodePoint
   ( Point
     { measurement = rocks
     , tags = color (tagValueByteArray (str "red"))
