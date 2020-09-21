@@ -65,10 +65,10 @@ import qualified Arithmetic.Nat as Nat
 import qualified Control.Monad.Primitive as PM
 import qualified Data.Primitive as PM
 import qualified Data.Primitive.Unlifted.Array as PM
-import qualified Data.ByteArray.Builder as B
-import qualified Data.ByteArray.Builder.Unsafe as BU
-import qualified Data.ByteArray.Builder.Bounded as BB
-import qualified Data.ByteArray.Builder.Bounded.Unsafe as BBU
+import qualified Data.Bytes.Builder as B
+import qualified Data.Bytes.Builder.Unsafe as BU
+import qualified Data.Bytes.Builder.Bounded as BB
+import qualified Data.Bytes.Builder.Bounded.Unsafe as BBU
 import qualified Data.Text.Short as TS
 import qualified Data.Vector.Primitive as PV
 import qualified GHC.Exts as Exts

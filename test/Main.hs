@@ -4,7 +4,7 @@ import Data.Char (ord)
 import Data.Word
 import Data.Primitive (ByteArray)
 import Database.Influx.LineProtocol
-import Data.ByteArray.Builder (run)
+import Data.Bytes.Builder (run)
 import System.IO
 import Control.Monad (when)
 

@@ -5,7 +5,7 @@ import Data.Char (ord)
 import Data.Word (Word8,Word64)
 import Data.Primitive (ByteArray)
 import Database.Influx.LineProtocol
-import Data.ByteArray.Builder (run)
+import Data.Bytes.Builder (run)
 import Data.Vector (Vector)
 import Gauge.Main
 import Gauge.Main.Options
